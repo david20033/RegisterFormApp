@@ -1,0 +1,68 @@
+﻿@model RegisterForm.ViewModels.EditProfileViewModel
+@{
+    ViewData["Title"] = "Edit Profile";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4">Edit Profile</h2>
+
+    <ul class="nav nav-tabs" id="editTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" type="button">Profile</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link" asp-action="ChangePassword" asp-controller="Account">Change Password</a>
+        </li>
+    </ul>
+
+    <div class="tab-content mt-3 show">
+        <div class="tab-pane fade show active">
+            <form asp-action="Edit" method="post">
+                <div class="mb-3">
+                    <label asp-for="FirstName" class="form-label">First name</label>
+                    <input asp-for="FirstName" class="form-control" placeholder="Enter your first name" />
+                    <span asp-validation-for="FirstName" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="LastName" class="form-label">Last name</label>
+                    <input asp-for="LastName" class="form-control" placeholder="Enter your last name" />
+                    <span asp-validation-for="LastName" class="text-danger"></span>
+                </div>
+
+                <hr />
+
+                <div class="mb-3">
+                    <label asp-for="Email" class="form-label">Email</label>
+                    <input asp-for="Email" class="form-control" readonly />
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Username" class="form-label">Username</label>
+                    <input asp-for="Username" class="form-control" readonly />
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="PhoneNumber" class="form-label">Phone number</label>
+                    <input asp-for="PhoneNumber" class="form-control" readonly />
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="DateOfBirth" class="form-label">Date of birth</label>
+                    <input asp-for="DateOfBirth" class="form-control" readonly />
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-success">Save</button>
+                    <a asp-action="Index" asp-controller="Home" class="btn btn-secondary">Go Back</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
