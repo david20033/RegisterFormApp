@@ -1,0 +1,23 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Home - RegisterForm</title>
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <div class="container text-center mt-5">
+        <h1 class="display-4 mb-4">Welcome back, {{Username}}!</h1>
+        <p class="lead">You are logged in.</p>
+        <div class="d-flex justify-content-center gap-3">
+            <a href="/Account/Edit" class="btn btn-outline-success btn-lg mt-3">Edit Profile</a>
+            <form action="/Account/Logout" method="post" class="d-inline">
+                <button type="submit" class="btn btn-danger btn-lg mt-3">Logout</button>
+            </form>
+        </div>
+    </div>
+
+</body>
+</html>

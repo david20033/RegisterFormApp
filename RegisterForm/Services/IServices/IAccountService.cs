@@ -5,7 +5,7 @@ namespace RegisterForm.Services.IServices
 {
     public interface IAccountService
     {
-        Task<Users> CreateUserAsync(RegisterViewModel model);
+        Task CreateUserAsync(RegisterViewModel model);
         Task<Dictionary<string, string>> ValidateRegistrationAsync(RegisterViewModel model, string sessionCaptcha);
         Task<(bool IsValid, Users? User, string? ErrorMessage)> ValidateLoginAsync(LoginViewModel model, string sessionCaptcha);
         Task<(bool Success, string? ErrorMessage)> ChangePasswordAsync(ChangePasswordViewModel model, string sessionCaptcha);

@@ -1,32 +1,23 @@
-using System.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
-using RegisterForm.Models;
 
 namespace RegisterForm.Controllers
 {
-    public class HomeController : Controller
+    public class HomeController : BaseController
     {
-        private readonly ILogger<HomeController> _logger;
-
-        public HomeController(ILogger<HomeController> logger)
+        public bool IsAuthenticated { get; set; }
+        public string Username { get; set; }
+        public string Index()
         {
-            _logger = logger;
-        }
-
-        public IActionResult Index()
-        {
-            return View();
-        }
-
-        public IActionResult Privacy()
-        {
-            return View();
-        }
-
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
-        {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+            if (IsAuthenticated) 
+            {
+                return View("Index1.html", new
+                {
+                    Username = Username,    
+                });
+            }
+            else
+            {
+                return View("Index.html");
+            }
         }
     }
 }

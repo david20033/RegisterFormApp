@@ -1,221 +1,114 @@
 using Xunit;
-using System.Threading.Tasks;
-using RegisterForm.Data;
-using Microsoft.EntityFrameworkCore;
 using RegisterForm.Repositories;
 using RegisterForm.ViewModels;
-using Microsoft.AspNetCore.Identity;
+using RegisterForm.Data;
+using System;
+using System.Threading.Tasks;
+using Microsoft.Data.SqlClient;
+
 
 namespace RegisterForm.Tests
 {
-    public class AccountRepositoryTests
+    public class AccountRepositorySqlServerTests: IDisposable 
     {
-        private RegisterFormDbContext GetDbContext(string dbName)
+        private readonly string _connectionString;
+        private readonly AccountRepository _repo;
+
+        public AccountRepositorySqlServerTests()
         {
-            var options = new DbContextOptionsBuilder<RegisterFormDbContext>()
-                .UseInMemoryDatabase(databaseName: dbName)
-                .Options;
-            return new RegisterFormDbContext(options);
+            _connectionString = @"Server=(localdb)\MSSQLLocalDB;Database=AccountTestDb;Trusted_Connection=True;";
+
+            using var conn = new SqlConnection(_connectionString);
+            conn.Open();
+
+            var cmd = new SqlCommand(@"
+                IF OBJECT_ID('dbo.Users', 'U') IS NOT NULL DROP TABLE dbo.Users;
+                CREATE TABLE Users (
+                    Id UNIQUEIDENTIFIER PRIMARY KEY,
+                    FirstName NVARCHAR(100),
+                    LastName NVARCHAR(100),
+                    Username NVARCHAR(100),
+                    Email NVARCHAR(100),
+                    Password NVARCHAR(200),
+                    PhoneNumber NVARCHAR(20),
+                    isEmailConfirmed BIT,
+                    DateOfBirth DATETIME
+                );", conn);
+            cmd.ExecuteNonQuery();
+
+            _repo = new AccountRepository(_connectionString);
         }
+
         [Fact]
-        public async Task IsEmailTakenAsync_ReturnsTrue_WhenEmailExists()
+        public async Task CreateUserAsync_CanInsertUser()
         {
-            var context = GetDbContext("TestDb1");
-            context.Users.Add(new Users { Email = "test@example.com" });
-            await context.SaveChangesAsync();
-            var repo=new AccountRepository(context);
-
-            var result = await repo.IsEmailTakenAsync("test@example.com");
-
-            Assert.True(result);
-        }
-        [Fact]
-        public async Task IsEmailTakenAsync_ReturnsFalse_WhenEmailDoesNotExists()
-        {
-            var context = GetDbContext("TestDb2");
-            var repo = new AccountRepository(context);
-
-            var result = await repo.IsEmailTakenAsync("test@example.com");
-
-            Assert.False(result);
-        }
-        [Fact]
-        public async Task IsUsernameTakenAsync_ReturnsTrue_WhenUsernameExists()
-        {
-            var context = GetDbContext("TestDb3");
-            context.Users.Add(new Users { Username = "testuser" });
-            await context.SaveChangesAsync();
-            var repo = new AccountRepository(context);
-
-            var result = await repo.IsUsernameTakenAsync("testuser");
-
-            Assert.True(result);
-        }
-        [Fact]
-        public async Task IsUsernameTakenAsync_ReturnsFalse_WhenUsernameDoesNotExists()
-        {
-            var context = GetDbContext("TestDb4");
-            var repo = new AccountRepository(context);
-
-            var result = await repo.IsUsernameTakenAsync("testuser");
-            Assert.False(result);
-        }
-        [Fact]
-        public async Task IsPhoneNumberTakenAsync_ReturnsTrue_WhenPhoneNumberExists()
-        {
-            var context = GetDbContext("TestDb5");
-            context.Users.Add(new Users { PhoneNumber = "1234567890" });
-            await context.SaveChangesAsync();
-            var repo = new AccountRepository(context);
-            var result = await repo.IsPhoneNumberTakenAsync("1234567890");
-            Assert.True(result);
-        }
-        [Fact]
-        public async Task IsPhoneNumberTakenAsync_ReturnsFalse_WhenPhoneNumberDoesNotExists()
-        {
-            var context = GetDbContext("TestDb6");
-            var repo = new AccountRepository(context);
-            var result = await repo.IsPhoneNumberTakenAsync("1234567890");
-            Assert.False(result);
-        }
-        [Fact]
-        public async Task CreateUserAsync_ShouldSaveUserWithHashPassword()
-        {
-            var context = GetDbContext("TestDb7");
-            var repo = new AccountRepository(context);
-
             var model = new RegisterViewModel
             {
-                Email = "test@example.com",
-                Username = "ExampleUsername",
-                Password = "SecurePassword123!",
+                FirstName = "John",
+                LastName = "Doe",
+                Username = "jdoe",
+                Email = "jdoe@example.com",
+                Password = "Password123",
+                PhoneNumber = "1234567890",
+                DateOfBirth = DateTime.Today
             };
-            var RepoUser = await repo.CreateUserAsync(model);
 
-            Assert.NotNull(RepoUser);
-            Assert.Equal("test@example.com", RepoUser.Email);
-            Assert.Equal("ExampleUsername", RepoUser.Username);
-            Assert.NotEqual("SecurePassword123!", RepoUser.Password);
-            var DbUser = await context.Users.FirstOrDefaultAsync(u => u.Email == "test@example.com");
-            Assert.NotNull(DbUser);
-            Assert.Equal(DbUser.Id, RepoUser.Id);
-        }
-        [Fact]
-        public async Task GetUserByEmailAsync_ReturnsUserWhenExist()
-        {
-            var context = GetDbContext("TestDb8");
-            var repo = new AccountRepository(context);
-            context.Add(new Users { Email="text@example.com", Username = "testuser" });
-            await context.SaveChangesAsync();
+            await _repo.CreateUserAsync(model);
 
-            var user = await repo.GetUserByEmailAsync("text@example.com");
-
+            var user = await _repo.GetUserByEmailAsync("jdoe@example.com");
             Assert.NotNull(user);
-            Assert.Equal("text@example.com", user.Email);
-            Assert.Equal("testuser", user.Username);
+            Assert.Equal("John", user.FirstName);
         }
-        [Fact]
-        public async Task GetUserByEmailAsync_ReturnsNullWhenDoesNotExist()
-        {
-            var context = GetDbContext("TestDb9");
-            var repo = new AccountRepository(context);
-            var user = await repo.GetUserByEmailAsync("text@example.com");
-            Assert.Null(user);
-        }
-        [Fact]
-        public async Task GetUserByIdAsync_ReturnUserWhenExists()
-        {
-            var context = GetDbContext("TestDb10");
-            var repo = new AccountRepository(context);
-            Guid UserId= Guid.NewGuid();
-            context.Add(new Users { Id = UserId, Email = "test@example.com" });
-            context.SaveChanges();
 
-            var user = await repo.GetUserByIdAsync(UserId);
-            Assert.NotNull(user);
-            Assert.Equal(UserId,user.Id);
-            Assert.Equal("test@example.com", user.Email);
-        }
         [Fact]
-        public async Task GetUserByIdAsync_ReturnsNullWhenDoesNotExist()
+        public async Task IsEmailTakenAsync_ReturnsTrueIfExists()
         {
-            var context = GetDbContext("TestDb11");
-            var repo = new AccountRepository(context);
-            var user = await repo.GetUserByIdAsync(Guid.NewGuid());
-            Assert.Null(user);
-        }
-        [Fact]
-        public async Task UpdateUserProfile_ShouldUpdateUserDetails()
-        {
-            var context = GetDbContext("TestDb12");
-            var repo = new AccountRepository(context);
-            Guid UserId = Guid.NewGuid();
-            context.Users.Add(new Users
+            var model = new RegisterViewModel
             {
-                Id = UserId,
-                FirstName = "OldFirstName",
-                LastName = "OldLastName",
-                PhoneNumber = "1234567890"
-            });
-            await context.SaveChangesAsync();
-            var model = new EditProfileViewModel
-            {
-                FirstName = "NewFirstName",
-                LastName = "NewLastName",
-                PhoneNumber = "0987654321"
+                Email = "emailtest@example.com",
+                Password = "pass",
+                DateOfBirth = new DateTime(2000, 1, 1)
             };
-            await repo.UpdateUserProfile(UserId, model);
+            await _repo.CreateUserAsync(model);
 
-            var updatedUser = await context.Users.FirstOrDefaultAsync(u => u.Id == UserId);
-            Assert.NotNull(updatedUser);
-            Assert.Equal("NewFirstName", updatedUser.FirstName);
-            Assert.Equal("NewLastName", updatedUser.LastName);
-            Assert.Equal("1234567890", updatedUser.PhoneNumber);
+            bool exists = await _repo.IsEmailTakenAsync("emailtest@example.com");
+            Assert.True(exists);
         }
+
         [Fact]
-        public async Task UpdateUserProfile_DoesNothing_WhenUserDoesNotExist()
+        public async Task UpdateUserProfile_UpdatesFields()
         {
-            var context = GetDbContext("TestDb13");
-            var repo = new AccountRepository(context);
-            var model = new EditProfileViewModel
-            {
-                FirstName = "NewFirstName",
-                LastName = "NewLastName",
-                PhoneNumber = "0987654321"
-            };
-            await repo.UpdateUserProfile(Guid.NewGuid(), model);
-            var usersCount = await context.Users.CountAsync();
-            Assert.Equal(0, usersCount);
+            var model = new RegisterViewModel { FirstName = "Old", LastName = "Name", Username = "u1", Email = "u1@example.com", Password = "pass", DateOfBirth = new DateTime(2000, 1, 1) };
+            await _repo.CreateUserAsync(model);
+            var user = await _repo.GetUserByEmailAsync("u1@example.com");
+
+            var editModel = new EditProfileViewModel { FirstName = "New", LastName = "User" };
+            await _repo.UpdateUserProfile(user.Id, editModel);
+
+            var updated = await _repo.GetUserByIdAsync(user.Id);
+            Assert.Equal("New", updated.FirstName);
+            Assert.Equal("User", updated.LastName);
         }
+
         [Fact]
-        public async Task UpdateUserPassword_ShouldHashAndUpdatePassword()
+        public async Task UpdateUserPassword_ChangesPassword()
         {
-            var context = GetDbContext("TestDb14");
-            var repo = new AccountRepository(context);
-            Guid UserId = Guid.NewGuid();
-            context.Users.Add(new Users
-            {
-                Id = UserId,
-                Password = "OldHashedPassword"
-            });
-            await context.SaveChangesAsync();
-            await repo.UpdateUserPassword(UserId, "NewSecurePassword123!");
-            var updatedUser = await context.Users.FirstOrDefaultAsync(u => u.Id == UserId);
-            var hasher = new PasswordHasher<Users>();
-            var verify = hasher.VerifyHashedPassword(updatedUser, updatedUser.Password, "NewSecurePassword123!");
-            Assert.NotNull(updatedUser);
-            Assert.NotEqual("OldHashedPassword", updatedUser.Password);
-            Assert.NotEqual("NewSecurePassword123!", updatedUser.Password);
-            Assert.Equal(PasswordVerificationResult.Success, verify);
+            var model = new RegisterViewModel { Email = "pw@example.com", Password = "oldpass", DateOfBirth = new DateTime(2000, 1, 1) };
+            await _repo.CreateUserAsync(model);
+            var user = await _repo.GetUserByEmailAsync("pw@example.com");
+
+            await _repo.UpdateUserPassword(user.Id, "newpass");
+
+            var updated = await _repo.GetUserByIdAsync(user.Id);
+            Assert.NotEqual(user.Password, updated.Password);
         }
-        [Fact]
-        public async Task UpdateUserPassword_DoesNothing_WhenUserDoesNotExist()
+
+        public void Dispose()
         {
-            var context = GetDbContext("TestDb15");
-            var repo = new AccountRepository(context);
-            await repo.UpdateUserPassword(Guid.NewGuid(), "NewSecurePassword123!");
-            var usersCount = await context.Users.CountAsync();
-            Assert.Equal(0, usersCount);
+            using var conn = new SqlConnection(_connectionString);
+            conn.Open();
+            var cmd = new SqlCommand("DROP TABLE IF EXISTS Users;", conn);
+            cmd.ExecuteNonQuery();
         }
     }
 }

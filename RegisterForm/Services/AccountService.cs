@@ -1,11 +1,10 @@
 ﻿using System.Drawing;
 using System.Drawing.Imaging;
-using Microsoft.AspNetCore.Identity;
 using RegisterForm.Data;
+using RegisterForm.Helpers;
 using RegisterForm.Repositories.IRepositories;
 using RegisterForm.Services.IServices;
 using RegisterForm.ViewModels;
-using static System.Net.Mime.MediaTypeNames;
 
 
 namespace RegisterForm.Services
@@ -18,9 +17,9 @@ namespace RegisterForm.Services
             _accountRepository = accountRepository;
         }
 
-        public async Task<Users> CreateUserAsync(RegisterViewModel model)
+        public async Task CreateUserAsync(RegisterViewModel model)
         {
-            return await _accountRepository.CreateUserAsync(model);
+            await _accountRepository.CreateUserAsync(model);
         }
 
         public async Task<Users?> GetUserByIdAsync(Guid Id)
@@ -77,9 +76,7 @@ namespace RegisterForm.Services
 
         public bool VerifyPasswordAsync(string userPassword, string inputPassword)
         {
-            var passwordHasher = new PasswordHasher<object>();
-            var result = passwordHasher.VerifyHashedPassword(null, userPassword, inputPassword);
-            if (result == PasswordVerificationResult.Success)
+            if (PasswordHelper.VerifyPassword(inputPassword, userPassword))
             {
                 return true;
             }

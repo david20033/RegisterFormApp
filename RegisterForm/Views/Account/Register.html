@@ -1,0 +1,146 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Register - RegisterForm</title>
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <div class="d-flex justify-content-center align-items-center vh-100">
+        <div class="card shadow-lg rounded-4 p-4" style="width: 32rem;">
+            <div class="card-body">
+                <h3 class="card-title text-center mb-4">Create an Account</h3>
+
+                <div id="clientErrors" class="text-danger mb-3"></div>
+                <div class="text-danger mb-3">{{ValidationSummary}}</div>
+
+                <form id="registerForm" action="/Account/Register" method="post" novalidate>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">First Name</label>
+                            <input name="FirstName" class="form-control" value="{{FirstName}}" placeholder="Enter first name" required />
+                            <span class="text-danger">{{FirstNameError}}</span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Last Name</label>
+                            <input name="LastName" class="form-control" value="{{LastName}}" placeholder="Enter last name" required />
+                            <span class="text-danger">{{LastNameError}}</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input name="Username" class="form-control" value="{{Username}}" placeholder="Enter username" required minlength="4" />
+                        <span class="text-danger">{{UsernameError}}</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input name="Email" type="email" class="form-control" value="{{Email}}" placeholder="Enter email" required />
+                        <span class="text-danger">{{EmailError}}</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input id="password" name="Password" type="password" class="form-control" placeholder="Enter password"  required minlength="6" />
+                        <span class="text-danger">{{PasswordError}}</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Confirm Password</label>
+                        <input id="confirmPassword" name="ConfirmPassword" type="password" placeholder="Confirm password" class="form-control" required />
+                        <span class="text-danger">{{ConfirmPasswordError}}</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Date Of Birth</label>
+                        <input name="DateOfBirth" type="date" class="form-control" value="{{DateOfBirth}}" required />
+                        <span class="text-danger">{{DateOfBirthError}}</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Phone Number</label>
+                        <input name="PhoneNumber" type="tel" placeholder="Enter Phone Number" class="form-control"
+                               value="{{PhoneNumber}}" pattern="^\+?[0-9]{7,15}$" required />
+                        <span class="text-danger">{{PhoneNumberError}}</span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <img src="/Account/CaptchaImage" alt="CAPTCHA" />
+                        </div>
+                        <div class="col-md-8 mb-3">
+                            <input name="Captcha" placeholder="Enter code from the image" class="form-control" required />
+                            <span class="text-danger">{{CaptchaError}}</span>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg rounded-3">Register</button>
+                    </div>
+
+                    <div class="mt-3 text-center">
+                        <small class="text-muted">
+                            Already have an account?
+                            <a href="/Account/Login">Login here</a>
+                        </small>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("registerForm").addEventListener("submit", function (e) {
+            let errors = [];
+            let form = e.target;
+
+            let password = form.querySelector("#password").value.trim();
+            let confirmPassword = form.querySelector("#confirmPassword").value.trim();
+            let email = form.querySelector("input[name='Email']").value.trim();
+            let phone = form.querySelector("input[name='PhoneNumber']").value.trim();
+            let dobInput = form.querySelector("input[name='DateOfBirth']").value.trim();
+
+            let emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                errors.push("Invalid email format.");
+            }
+
+            let phoneRegex = /^\+?[0-9]{7,15}$/;
+            if (!phoneRegex.test(phone)) {
+                errors.push("Invalid phone number format.");
+            }
+
+            if (password.length < 8) {
+                errors.push("Password must be at least 8 characters.");
+            }
+            if (password !== confirmPassword) {
+                errors.push("Passwords do not match.");
+            }
+
+            if (dobInput) {
+                let dob = new Date(dobInput);
+                let today = new Date();
+                let age = today.getFullYear() - dob.getFullYear();
+                let monthDiff = today.getMonth() - dob.getMonth();
+                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+                    age--;
+                }
+
+                if (age < 13 || age > 150) {
+                    errors.push("Age must be between 13 and 150 years.");
+                }
+            } else {
+                errors.push("Date of birth is required.");
+            }
+
+            if (errors.length > 0) {
+                e.preventDefault();
+                document.getElementById("clientErrors").innerHTML = errors.join("<br>");
+            }
+        });
+    </script>
+</body>
+</html>

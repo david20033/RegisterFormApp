@@ -9,7 +9,7 @@ namespace RegisterForm.Repositories.IRepositories
         Task<bool> IsUsernameTakenAsync(string username);
         Task<bool> IsPhoneNumberTakenAsync(string phoneNumber);
 
-        Task<Users> CreateUserAsync(RegisterViewModel model);
+        Task CreateUserAsync(RegisterViewModel model);
 
         Task<Users?> GetUserByEmailAsync(string email);
         Task<Users?> GetUserByIdAsync(Guid Id);
