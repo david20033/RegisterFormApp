@@ -323,7 +323,7 @@ public async Task<Users> CreateUserAsync(RegisterViewModel model)
 - **Brushes.Black, Pen(Color, thickness)** – Класове за четки и писалки.  
 - **bitmap.Save(ms, ImageFormat.Png)** – Запазване на изображението в stream.
 
-# Файлове с код и за какво се отнасят
+# 4. Файлове с код и за какво се отнасят
 
 ## 1. Data
 - **RegisterFormDbContext** – Контекстът на базата данни. Отговаря за връзката между приложението и базата данни чрез **EF Core**.  
