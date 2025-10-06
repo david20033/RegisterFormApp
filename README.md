@@ -2,151 +2,90 @@
 Web Application for register and login
 
 ## 1. Използвани технологии
-- **ASP.NET Core MVC** - за изграждане на сървърната част и Model-View-Controller архитектурата.
-- **Entity Framework Core** – за работа с базата данни.
-- **SQL Server** - за съхранение на данните.
-- **Razor Pages и HTML/CSS/JavaScript** - за front-end частта на приложението.
-- **XUnit и Moq** - За Unit тестове на функционалностите
+- **C# и .NET 8** – за изграждане на сървърната логика.
+- **HttpListener** – за приемане и обработка на HTTP заявки без пълен web server.
+- **SQL Server** – за съхранение на потребителските данни.
+- **HTML, CSS и JavaScript** – за front-end частта на приложението.
+- **XUnit и Moq** – за Unit тестове на функционалностите.
 
 ## 2. Функционалности и тяхната реализация
 
-### Функционалност: Валидация на данните (имейл, имена, парола и др.)
+## **Функционалност: Валидация на данните (имейл, имена, парола и др.)**
 
-#### 1. Модел на данните
-Създадох следните **ViewModel-и**, които съдържат нужните полета за работа с данните:  
-- `RegisterViewModel`  
-- `LoginViewModel`  
-- `EditProfileViewModel`  
-- `ChangePasswordViewModel`  
-
-Полета: име, фамилия, имейл, парола, потвърди парола и др.  
-
-За валидация на данните във ViewModel-ите използвах **DataAnnotations** (готови атрибути от ASP.NET Core).  
-Добавих правила като:  
-- задължителни полета  
-- минимална дължина  
-- правилен формат на имейл и телефонен номер  
-- съвпадение на пароли  
-- възрастови граници  
-
-##### Пример от кода:
-```csharp
-[Required(ErrorMessage = "First name is required")]
-[StringLength(50, MinimumLength = 2, ErrorMessage = "First name must be between 2 and 50 characters")]
-[RegularExpression(@"^[a-zA-Z]+$", ErrorMessage = "First name can only contain letters.")]
-public string FirstName { get; set; } = string.Empty;
-
-[Required(ErrorMessage = "Last name is required")]
-[StringLength(50, MinimumLength = 2, ErrorMessage = "Last name must be between 2 and 50 characters")]
-[RegularExpression(@"^[a-zA-Z]+$", ErrorMessage = "Last name can only contain letters.")]
-public string LastName { get; set; } = string.Empty;
-
-[Required(ErrorMessage = "Email is required")]
-[EmailAddress(ErrorMessage = "Invalid email format")]
-[StringLength(100)]
-public string Email { get; set; } = string.Empty;
-```
-#### 2. Сърварна валидация
-- Когато потребителят изпрати формата (POST заявка), всички правила се проверяват.
-- Ако има грешки, те се връщат към View-то и се показват на потребителя.
-- Сървърната валидация гарантира, че дори ако потребителят заобиколи клиентската валидация (например чрез Postman), данните пак ще бъдат проверени.
-#### 3. Клиентска  валидаци
-- Чрез външни скриптове като jquery-validation и DataAnnotations автоматично се генерира и клиентска валидация, без да се чака отговор от сървъра
-
-### Функционалност: Записване на данните в релационна база данни
-
-#### 1. Entity модел
-- Създадох клас **`Users`**, който използвам като **Entity модел**.  
-- В него са описани колоните:  
-  - `Id`  
-  - `FirstName`  
-  - `LastName`  
-  - `Email`  
-  - `Password`  
-  - `Username`  
-  - `DateOfBirth`  
-  - `PhoneNumber`  
-  - `IsEmailConfirmed`  
-- Добавих правила чрез **DataAnnotations** за:  
-  - първичен ключ  
-  - задължителни полета  
-  - минимална/максимална дължина на `string`-овете  
+В системата е реализиран цялостен механизъм за валидиране на потребителските данни, който осигурява както коректността, така и сигурността на въведената информация.  
+Валидацията се извършва **на два етапа** – **клиентска (в браузъра)** и **сървърна (в контролера)**.
 
 ---
 
-#### 2. DBContext и конфигурация
-- Създадох клас **`RegisterFormDbContext`**, който наследява `DbContext`.
-```csharp
-public class RegisterFormDbContext : DbContext
-```
-- Конфигурирах конструктора
-```csharp
-   public RegisterFormDbContext(DbContextOptions<RegisterFormDbContext> options) : base(options)
-   {
-   }
-```
-- Създадох property Users в класа, което EF Core ще ползва за  връзка с таблица Users
-```csharp
-  public virtual DbSet<Users> Users { get; set; }
-````
-- Използвайки Fluent Api зададох при създаването на таблицата колони Email, Phonenumber и Username да бъдат уникални
-```csharp
-protected override void OnModelCreating(ModelBuilder builder)
-{
-    base.OnModelCreating(builder);
-    builder.Entity<Users>()
-        .HasIndex(u => u.Email)
-        .IsUnique();
-    builder.Entity<Users>()
-        .HasIndex(u => u.PhoneNumber)
-        .IsUnique();
-    builder.Entity<Users>()
-        .HasIndex(u => u.Username)
-        .IsUnique();
-}
-```
-- В appsettings.json записах connectionString-а към SqlServer
-```csharp
-    "ConnectionStrings": {
-        "DefaultConnectionString": "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=master;Integrated Security=True;Connect Timeout=30;Encrypt=False;Trust Server Certificate=False;Application Intent=ReadWrite;Multi Subnet Failover=False;Database=RegisterForm"
-    },
-```
-- В program.cs регистрирах контекста
-```csharp
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnectionString");
-builder.Services.AddDbContext<RegisterFormDbContext>(options => options.UseSqlServer(connectionString));
-```
+### **1. Клиентска валидация**
 
-#### 3. Migrations
-- Създадох миграции чрез **Entity Framework Core**:  
-  ```bash
-  dotnet ef migrations add InitialCreate
-  ```
-  
-- Създадох база данни и таблица чрез миграциите и EF Core
-  ```bash
-  dotnet ef database update
-  ```
-  #### 4. Запис и обработка на данни
-- Имам няколко метода, които чрез **Entity Framework Core** извличат и/или обработват данните от базата.  
-- Пример:  
-  - **`CreateUserAsync`** – създава нов потребител.  
+Преди изпращане на заявката към сървъра, формите (например регистрация и вход) извършват първоначална проверка чрез **JavaScript**.  
+Така се предотвратява изпращането на невалидни данни и се намалява натоварването върху сървъра.  
 
-Процесът за създаване на потребител е следният:  
-1. Взимам данните от **`RegisterViewModel`**.  
-2. Мапвам всяко свойство от модела към **`User Entity`**.  
-3. Чрез **EF Core** добавям потребителя в базата данни.  
-4. Запазвам промените в базата чрез метода `SaveChangesAsync()`.
-```csharp
-public async Task<Users> CreateUserAsync(RegisterViewModel model)
-{
-    var user = Users.MapFromRegisterViewModel(model);
-    user.Password = new PasswordHasher<Users>().HashPassword(user, model.Password);
-    await _context.Users.AddAsync(user);
-    await _context.SaveChangesAsync();
-    return user;
-}
-```
+Основните проверки, които се извършват на клиентската страна, са:  
+
+- Проверка на имейл адрес чрез **регулярен израз (Regex)**, гарантиращ правилен формат.  
+- Проверка дали **паролата отговаря на минимални изисквания за дължина** и дали съвпада с полето „потвърди парола“.  
+- Проверка на **телефонния номер** – разрешени са само цифри и символ „+“, като дължината е ограничена.  
+- Проверка на **възрастовия диапазон** – при регистрация потребителят трябва да е на възраст между **13 и 150 години**.  
+- Ако някое от условията не е изпълнено, формата **не се изпраща към сървъра**, а грешките се визуализират директно под съответните полета чрез HTML елементи (`<span class="text-danger">`).
+
+---
+
+### **2. Сървърна валидация**
+
+След като данните преминат клиентската проверка и бъдат изпратени, **класа `Router`** прихваща HTTP заявката.  
+В зависимост от маршрута (`/Account/Register`, `/Account/Login`, `/Account/Edit` и т.н.), `Router` извлича подадените данни и ги подава към съответния контролер чрез **POST метод** (например `RegisterPost()`, `LoginPost()`).  
+
+Контролерите (`AccountController`, `HomeController` и др.) изпълняват **сървърна валидация**, която е независима от клиентската и служи като последна защита срещу некоректни или злонамерени входни данни.  
+
+На този етап се извършват следните проверки:  
+
+- Проверка дали всички задължителни полета са попълнени.  
+- Проверка за **валидност на имейл и телефонен номер** чрез регулярни изрази.  
+- Проверка дали паролата **отговаря на изискванията за сигурност** (минимална дължина, съвпадение с потвърдената парола).  
+- Проверка на **възрастовата граница** чрез изчисляване на разликата между текущата дата и датата на раждане.  
+- Проверка дали **потребител с този имейл или потребителско име вече съществува** в базата данни.  
+- Проверка на **CAPTCHA кода**, съхраняван в сесията, за защита от автоматизирани регистрации.  
+
+Ако при някоя от тези проверки се установи несъответствие, контролерът връща същия изглед (`.html` файл) с подходящи съобщения за грешка, без да се извършват промени в базата данни.  
+Само при успешно преминаване на всички валидации се продължава с обработката и записването на данните.
+
+## Функционалност: Записване на данните в релационна база данни
+
+**Таблица:** Users  
+Поля: Id, FirstName, LastName, Username, Email, Password, PhoneNumber, isEmailConfirmed, DateOfBirth
+
+---
+
+## Методи
+
+### CreateUserAsync(RegisterViewModel user)
+- Отваря SQL връзка към базата (`SqlConnection`).  
+- Хешира паролата с `PasswordHelper`.  
+- Изпълнява `INSERT INTO Users` с параметризирани стойности.
+
+### GetUserByEmailAsync(email) / GetUserByIdAsync(id)
+- Извлича ред от Users чрез `SELECT`.  
+- Връща обект `Users` или null.
+
+### IsEmailTakenAsync(email), IsPhoneNumberTakenAsync(phone), IsUsernameTakenAsync(username)
+- Проверка за съществуващи стойности с `SELECT COUNT(1)`.
+
+### UpdateUserProfile(userId, EditProfileViewModel model)
+- Изпълнява `UPDATE Users` за `FirstName` и `LastName`.
+
+### UpdateUserPassword(userId, string password)
+- Хешира паролата.  
+- Изпълнява `UPDATE Users` на полето Password.
+
+---
+
+## Как репото работи с базата
+- Контролерите подават ViewModel към репото.  
+- Репото отваря **SQL връзка**, изпълнява **параметризирани команди** и връща резултат.  
+- Абстрахира логиката за достъп до база от контролера.  
+- Паролите се хешират преди запис за сигурност.
 
 ### Функционалност: Login  
 
@@ -159,7 +98,7 @@ public async Task<Users> CreateUserAsync(RegisterViewModel model)
 ---
 
 #### 2. Кепча защита
-- Кепча кодът се съхранява в **Session**.  
+- Кепча кодът се съхранява в **Session Dictionary**.  
 - Когато потребителят отвори **Login страницата**:  
   - извлича се кепча кодът от сесията  
   - генерира се снимка с кода и линии за по-трудното му четене  
@@ -178,9 +117,9 @@ public async Task<Users> CreateUserAsync(RegisterViewModel model)
 ---
 
 #### 4. Създаване на сесия
-- При успешен вход се извиква метод, който създава **Cookie** чрез **ASP.NET Core Identity / Cookie Authentication**.  
-- В Cookie-то се запазва информация дали потребителят е логнат.  
-- Ако **Remember me** е маркирано → Cookie-то е с удължена валидност.  
+- При успешен вход контролерът задава `IsAuthenticated = true` и `Username` в `HomeController`.  
+- Създава се **Session Dictionary** (`Dictionary<string, string> Session`) в `AccountController`, където се пазят данни за текущия потребител, напр. `CurrentUserId`.  
+- При изход (`Logout`) речникът се изчиства, а `IsAuthenticated` се връща на `false`.  
 
 ---
 
@@ -188,7 +127,7 @@ public async Task<Users> CreateUserAsync(RegisterViewModel model)
 
 #### 1. Метод в контролера
 - При извикване на **POST метода за logout** в контролера:  
-  - Cookie-то се премахва  
+  - Данните за потребителя в текущата сесия се изчистват  
   - текущата сесия на потребителя се прекратява
 
 ### Функционалност: Промяна на имена и парола на потребителя  
@@ -204,14 +143,14 @@ public async Task<Users> CreateUserAsync(RegisterViewModel model)
 #### 2. Методите в контролера
 - Методът **`Edit`** приема модела от формата и проверява дали въведените данни са валидни чрез `ModelState.IsValid`.  
 - Идентификаторът на текущо логнатия потребител се взема от системата → гарантира се, че всеки може да редактира само собствения си профил.  
-- След това се извиква метод, който обновява данните в базата данни чрез **EF Core**.  
+- След това се извиква метод, който обновява данните в базата данни.  
 
 ---
 
 #### 3. Потвърждение и обратна връзка
 - При успешна промяна се записва съобщение в **`TempData["SuccessMessage"]`**, което може да бъде показано на следващата страница.  
 - Потребителят се пренасочва към **`Home/Index`**.  
-- Ако данните не са валидни → остава на същата страница и се показват грешките от `ModelState`.  
+- Ако данните не са валидни → остава на същата страница и се показват грешките.  
 
 ---
 
@@ -257,57 +196,33 @@ public async Task<Users> CreateUserAsync(RegisterViewModel model)
 ![Test Explorer image](Screenshots/test.png)
 
 ## 3. Използвани готови функции  
+### HttpListener
+- **HttpListener** – създава HTTP сървър.
+- **HttpListenerContext** – предоставя информация за request и response.
+- **HttpListenerRequest** – достъп до данните от HTTP заявката.
+- **HttpListenerResponse** – конфигуриране на отговора, включително `ContentType`, `StatusCode`, `OutputStream`.
 
-### MVC Controller – Функции, Класове, Интерфейси и методи използвани за контрол и рендиране на View  
+### Работа с файлове
+- `File.Exists(path)` – проверява дали файлът съществува.
+- `File.ReadAllBytes(path)` – чете съдържанието на файл като масив от байтове.
+- `File.WriteAllText(path, text)` – записва текст във файл.
+- `Path.Combine(paths)` – комбинира части от път към файл.
+- `Path.GetExtension(path)` – връща разширението на файла.
 
-- **Controller** – базовия клас на Controller. Осигурява достъп до HttpContext, ModelState, View(), RedirectToAction() и др.  
-- **IActionResult** – Интерфейс, готов за обработка на отговори като View, Json, RedirectToAction и други.  
+### Stream / Encoding
+- `MemoryStream` – работа с поток от памет вместо файл.
+- `StreamReader / StreamWriter` – четене и запис на текст от поток.
+- `Encoding.UTF8.GetBytes(string)` – превръща текст в байтов масив.
+- `Encoding.UTF8` – за декодиране/кодиране на текстови данни.
 
----
+### Асинхронно програмиране
+- `Task / async / await` – асинхронни методи за I/O операции.
 
-### Атрибути – Контрол на HTTP, защита от Cross-Site Request Forgery, ограничаване на достъпа (Authorization)  
-- **[HttpPost]** – Указва, че действието е POST.  
-- **[ValidateAntiForgeryToken]** – Защита от CSRF.  
-- **[Authorize]** – Ограничаване на достъпа само за логнати потребители.  
-
----
-
-### User / Claims – Информация за текущо логнатия потребител  
-- **User.Identity.IsAuthenticated** – Проверява дали потребителят е логнат.  
-- **User.FindFirst("UserId")?.Value** – Взема claim-а "UserId", който е зададен при SignInAsync, и го връща.  
-
----
-
-### HttpContext / Session – Съхраняване на временни данни в сесия  
-- **SetString(key, value)** – Записване на данни в сесията.  
-- **GetString(key)** – Извличане на данни от сесията.  
-
----
-
-### ModelState – Валидация на входни модели  
-- **ModelState.IsValid** – Свойство, което проверява дали моделът е валиден според DataAnnotations.  
-- **ModelState.AddModelError(key, message)** – Функция за добавяне на грешка към модела във View.  
-
----
-
-### HttpContext / SignInAsync / SignOutAsync – Контрол на Cookies  
-- **SignInAsync** – Създава Cookie на потребителя, за да се следи дали е логнат в приложението.  
-- **SignOutAsync** – Изчиства Cookie на потребителя.  
-
----
-
-### Entity Framework Core – Достъп и обработка в базата данни  
-- **FirstOrDefaultAsync()** – Връща първия запис, който отговаря на дадено условие или връща Null ако няма такъв.  
-- **AddAsync(User)** – Добавяне на нов user в БД.  
-- **SaveChangesAsync()** – Записва промените в БД.  
-- **LINQ функции** като: `Select()`, `Any()`.  
-
----
-
-### PasswordHasher – Хеширане (криптиране) на парола  
-- **HashPassword(user, "SecurePassword123!")** – за хеширане на паролата на потребителя преди да бъде записана/проверена в базата данни.  
-
----
+### Колекции
+- `Dictionary<TKey, TValue>` – съхраняване на key-value данни (например session, form data).
+- `Dictionary.Add(key, value)` – добавяне на елемент.
+- `Dictionary.ContainsKey(key)` – проверка за наличието на ключ.
+- `Dictionary.GetValueOrDefault(key)` – взема стойността по ключ или default.
 
 ### Random – Генериране на рандъм числа  
 - **Random.Next()** – Генериране на рандъм координати (на линиите, в Captcha изображението) и индекси (за генериране на string от рандъм символи за Captcha кода).  
@@ -326,8 +241,7 @@ public async Task<Users> CreateUserAsync(RegisterViewModel model)
 # 4. Файлове с код и за какво се отнасят
 
 ## 1. Data
-- **RegisterFormDbContext** – Контекстът на базата данни. Отговаря за връзката между приложението и базата данни чрез **EF Core**.  
-- **Users** – Entity за потребителите, което включва полета като: Име, Фамилия, Имейл и др. Зададени са правила за валидация на данните преди да бъдат записани в базата данни чрез **DataAnnotations**.  
+- **Users** – Entity за потребителите, което включва полета като: Име, Фамилия, Имейл и др.  
 
 ---
 
@@ -360,14 +274,17 @@ public async Task<Users> CreateUserAsync(RegisterViewModel model)
   - `GenerateCaptchaCode`  
   - `GenerateCaptchaImage`  
 - **IAccountService** – Интерфейс, който дефинира методите на AccountService.  
-- **AuthService** – Отговаря за логиката за създаване/премахване на Auth cookies.  
-  Включва методите: `SignInAsync`, `SignOutAsync`, `CreatePrincipal`.  
-- **IAuthService** – Интерфейс, който дефинира методите на AuthService.  
 
 ---
 
-## 4. Controller
-- **AccountController** – Управлява и обработва **GET** и **POST** заявки и връща **View** като отговор.  
+## 4. Controllers
+- **BaseController**
+- Това е базовият клас за всички контролери в проекта.  
+- Съдържа общи методи, които се използват от наследниците:  
+  - `View(string viewName, object model = null)` – рендерира HTML файлове, като замества плейсхолдери `{{PropertyName}}` с данни от моделите.
+  - `RedirectToAction(string action, string controller = null)` – Пренасочва към действие.
+- Цел: да събере общата логика на контролерите, за да не се дублира код.
+- **AccountController** – Управлява и обработва **GET** и **POST** заявки и връща **HTMl** в string формат като отговор, който се реднира по-късно.  
   Включва методите:  
   - `Register`  
   - `Login`  
@@ -375,28 +292,101 @@ public async Task<Users> CreateUserAsync(RegisterViewModel model)
   - `Edit`  
   - `ChangePassword`  
   - `CaptchaImage`  
+- **HomeController**
+- Включва метода:  
+  - `Index`
+  -    
+---
+
+## 5. Utilities
+### Router.cs (или логиката за маршрутизация в Main.cs)
+
+#### 1. Основна функция
+- Router-ът отговаря за **маршрутизацията на HTTP заявки** към правилния контролер и метод.  
+- Обработва както **GET**, така и **POST** заявки.  
+- Разделя URL адресите на сегменти и определя кой контролер и действие трябва да се извика.  
+
+#### 2. Примерни маршрути
+- `/account/register` → `AccountController.RegisterGet` (GET) / `RegisterPost` (POST)  
+- `/account/login` → `AccountController.LoginGet` (GET) / `LoginPost` (POST)  
+- `/account/edit` → `AccountController.EditGet` / `EditPost` (само ако е автентикиран)  
+- `/account/changepassword` → `AccountController.ChangePasswordGet` / `ChangePasswordPost` (само за автентикирани)  
+- `/account/logout` → `AccountController.Logout` (POST)  
+- `/home/index` или `/` → `HomeController.Index`  
+
+#### 3. Работа с POST данни
+- Router-ът чете тялото на POST заявките чрез `StreamReader`.  
+- Извиква `ParseFormData`, за да превърне формата в `Dictionary<string, string>`.  
+- След това предава данните на съответния контролер и метод.  
+- Например:  
+  - Данните от регистрационната форма се подават на `AccountController.RegisterPost(RegisterViewModel model)`  
+  - Данните от формата за редакция на профил се подават на `AccountController.EditPost(EditProfileViewModel model)`  
+
+#### 4. Обработка на статични файлове
+- Router-ът проверява дали URL-то сочи към файл в `wwwroot`.  
+- Ако файлът съществува (CSS, JS, изображения), го връща директно на клиента.  
+
+#### 5. Redirects
+- Ако контролерът върне `REDIRECT:/target`, Router-ът изпраща HTTP статус `302` и задава `RedirectLocation`.  
+- След това клиентът прави нова заявка към целевия URL.  
+
+#### 6. Сесии и автентикация
+- Router-ът използва свойствата `IsAuthenticated` и `Username` на HomeController и AccountController, за да контролира достъпа до защитени ресурси.  
+- Например, `/account/edit` и `/account/changepassword` са достъпни само за логнати потребители.
+
+#### 7. Грешки
+- Router-ът обработва грешки като `404 Not Found` и `500 Internal Server Error`.  
+- Грешките се връщат като HTML отговор.
 
 ---
 
-## 5. Views
-- **Account/Register** и **Account/Login** – HTML формите за регистрация и логин, използващи Razor синтаксис и Tag Helpers за връзка с моделите.  
+## 6. Main
+### 1. Основна функция на Main.cs
+- Стартира HTTP слушател на `http://localhost:5000/`.  
+- Отговаря за **приемане на заявки** от браузъра и препращане към правилния контролер.  
+- Интегрира логиката на **маршрутизация (Router)**, обработка на **POST данни**, **статични файлове**, **редиректи** и **сесии**.
+
+---
+
+### 2. HTTP Listener
+- Използва се `HttpListener` за слушане на входящи HTTP заявки.  
+
+---
+
+## 7. PasswordHelper 
+### Функция
+- Помощен клас за хеширане и проверка на пароли.
+
+### Методи
+
+### HashPassword
+- Взема парола като вход.
+- Генерира уникален **salt**.
+- Използва **PBKDF2** с SHA-256 за създаване на защитен хеш.
+- Връща хеша, комбиниран със солта, в Base64 формат за съхранение в базата данни.
+
+### VerifyPassword
+- Взема входна парола и съхранен Base64 хеш.
+- Извлича солта от съхранения хеш.
+- Пресъздава хеш от входната парола със същата солта.
+- Сравнява пресъздадения хеш със съхранения, за да потвърди валидността на паролата.
+
+
+## 8. Views
+- **Account/Register** и **Account/Login** – HTML формите за регистрация и логин, използващи custom атрибути за извличане на данни от моделите.  
 - **Account/Edit** и **Account/ChangePassword** – HTML формите за промяна на имена и парола.  
 
 ---
 
-## 6. ViewModels
+## 9. ViewModels
 - **ChangePasswordViewModel**, **EditProfileViewModel**, **LoginViewModel**, **RegisterViewModel** – Съдържат само полетата, които ще се обработват/показват във View, и валидират данните чрез DataAnnotations.  
 
 ---
 
-## 7. Tests
-- **AccountController**, **AccountRepository**, **AccountService**, **AuthService** – Unit тестовете за всеки метод от класовете.  
-  Обхващат всички възможни тест сценарии за всеки един метод.
+## 10. Tests
+- Unit тестовете за всеки метод от класовете.  
+- Обхващат всички възможни тест сценарии за всеки един метод.
 
-  ---
-  
-## 8. Attributes
-- **AgeRangeAttribute** - Custom атрибут за валидация на възраст спрямо рождена дата
 
 
 
