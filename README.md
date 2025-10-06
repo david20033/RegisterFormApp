@@ -3,6 +3,7 @@ Web Application for register and login
 
 ## 1. Използвани технологии
 - **C# и .NET 8** – за изграждане на сървърната логика.
+- **MVC (Model-View-Controller)** архитектура с service и repository слоеве – за структуриране на приложението и рендиране на View.
 - **HttpListener** – за приемане и обработка на HTTP заявки без пълен web server.
 - **SQL Server** – за съхранение на потребителските данни.
 - **HTML, CSS и JavaScript** – за front-end частта на приложението.
