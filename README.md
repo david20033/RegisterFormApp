@@ -39,7 +39,7 @@ Web Application for register and login
 
 Контролерите (`AccountController`, `HomeController` и др.) изпълняват **сървърна валидация**, която е независима от клиентската и служи като последна защита срещу некоректни или злонамерени входни данни.  
 
-На този етап се извършват следните проверки:  
+ Извършват следните проверки:  
 
 - Проверка дали всички задължителни полета са попълнени.  
 - Проверка за **валидност на имейл и телефонен номер** чрез регулярни изрази.  
@@ -54,7 +54,7 @@ Web Application for register and login
 ## Функционалност: Записване на данните в релационна база данни
 
 **Таблица:** Users  
-Поля: Id, FirstName, LastName, Username, Email, Password, PhoneNumber, isEmailConfirmed, DateOfBirth
+Полета: Id, FirstName, LastName, Username, Email, Password, PhoneNumber, isEmailConfirmed, DateOfBirth
 
 ---
 
@@ -181,10 +181,7 @@ Web Application for register and login
 ### Функционалност: Пълно покритие с Unit тестове  
 
 #### 1. Структура на тестовете
-- Използвах **xUnit** като framework за unit тестове.  
-- Всеки метод от бизнес логиката е тестван с различни сценарии.  
-- За методите, които взаимодействат с базата, е използван **in-memory DbContext** на EF Core → избягва се зависимост от реална база.  
-- Използвах и **Moq** за методи с външни зависимости.  
+- **xUnit** като framework за unit тестове.  
 
 ---
 
@@ -193,6 +190,9 @@ Web Application for register and login
 - Всички методи в **`AccountService`**.  
 - Всички методи в **`AuthService`**.  
 - Всички методи в **`AccountController`**.
+- Всички методи в **`BaseController`**.
+- Всички методи в **`Router`**.
+- Всички методи в **`StaticFileHandler`**.
 ![Test Explorer image](Screenshots/test.png)
 
 ## 3. Използвани готови функции  
@@ -223,6 +223,12 @@ Web Application for register and login
 - `Dictionary.Add(key, value)` – добавяне на елемент.
 - `Dictionary.ContainsKey(key)` – проверка за наличието на ключ.
 - `Dictionary.GetValueOrDefault(key)` – взема стойността по ключ или default.
+### SQL
+- `SqlConnection` – установяване на връзка с SQL Server.
+- `SqlCommand` – изпълнение на SQL команди.
+- `ExecuteNonQuery()` – изпълнява SQL команди, които не връщат резултат (например CREATE, INSERT, UPDATE, DELETE).
+- `ExecuteReader()` – чете резултати от SELECT заявки.
+- `ExecuteScalarAsync()` – изпълнява заявка и връща първата колона от първия ред като резултат.
 
 ### Random – Генериране на рандъм числа  
 - **Random.Next()** – Генериране на рандъм координати (на линиите, в Captcha изображението) и индекси (за генериране на string от рандъм символи за Captcha кода).  
